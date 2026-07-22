@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html, body, #root { height: 100%; margin: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+@layer components {
+  .cv-icon-btn {
+    @apply flex items-center justify-center rounded-md p-1.5 text-cv-muted transition-colors hover:bg-white/10 hover:text-cv-text;
+  }
+  .cv-input {
+    @apply rounded-md border border-cv-border bg-cv-elevated px-2 py-1.5 text-xs text-cv-text outline-none transition-colors focus:border-cv-accent;
+  }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cv-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cv-muted); }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
