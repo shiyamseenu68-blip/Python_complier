@@ -1,13 +1,12 @@
 # Python Studio
 
-A modern Python IDE with real code execution using Pyodide (WebAssembly Python), built with React + Vite + Tailwind.
+A modern Python IDE with real code execution using Piston API, built with React + Vite + Tailwind.
 
 ## Features
 
-- **Real Python code execution** using Pyodide (runs entirely in the browser)
+- **Real Python code execution** using Piston API (server-side CPython)
 - Monaco Editor with syntax highlighting and autocomplete
 - Interactive terminal with stdout/stderr streaming
-- Input() support for interactive programs
 - Code snippets and run history with Supabase
 - Export/import code as JSON
 - Dark theme with customizable accents
@@ -18,7 +17,7 @@ A modern Python IDE with real code execution using Pyodide (WebAssembly Python),
 ## Tech Stack
 
 - **Frontend:** React 18, Vite 5, Tailwind CSS 3, Monaco Editor, Framer Motion, Zustand
-- **Python Runtime:** Pyodide (CPython compiled to WebAssembly)
+- **Python Runtime:** Piston API (real server-side Python execution)
 - **Database:** Supabase (optional, for snippets and history)
 
 ## Quick Start
@@ -50,7 +49,7 @@ Copy `.env.example` to `.env` and configure (optional - for Supabase features):
    - `VITE_SUPABASE_ANON_KEY`
 4. Deploy with `vercel --prod`
 
-**Python execution works on Vercel** - no backend server needed!
+**Python execution works on Vercel** - uses Piston API for real server-side execution!
 
 ## Project Structure
 
@@ -59,7 +58,7 @@ Copy `.env.example` to `.env` and configure (optional - for Supabase features):
 ├── src/                 # Frontend React app
 │   ├── components/      # UI components
 │   ├── db.ts           # Supabase database functions
-│   ├── pyodideRunner.ts # Pyodide-based Python execution
+│   ├── pistonRunner.ts # Piston API-based Python execution
 │   └── store.ts        # Zustand state management
 ├── vercel.json         # Vercel configuration
 └── package.json
@@ -67,9 +66,9 @@ Copy `.env.example` to `.env` and configure (optional - for Supabase features):
 
 ## How It Works
 
-Python Studio uses **Pyodide**, which is CPython compiled to WebAssembly. This means:
-- Python code runs directly in the browser
-- No backend server required
-- Works on any static hosting platform (Vercel, Netlify, GitHub Pages)
-- Supports most Python features including loops, functions, classes, exceptions, and recursion
-- First run loads the Python runtime (~10MB from CDN), subsequent runs are instant
+Python Studio uses the **Piston API** (https://emkc.org/api/v2/piston) for real Python code execution:
+- Python code is sent to Piston's execution engine
+- Code runs on a server with Python 3.10.0
+- Real stdout/stderr output is returned
+- Supports all Python features including loops, functions, classes, exceptions, and recursion
+- No local Python installation or backend server required
