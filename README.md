@@ -38,9 +38,21 @@ Copy `.env.example` to `.env` and configure:
 | `VITE_SUPABASE_URL` | Yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 
-## Deploy to Vercel
+## Deployment Limitations
 
-**Important:** Python code execution requires a backend server. Vercel only hosts the frontend.
+**IMPORTANT:** Python code execution requires a backend server with Python runtime. 
+
+- **Vercel:** Python execution is NOT available. Vercel only hosts static frontend. The app will show a message indicating this limitation.
+- **Netlify:** Same limitation as Vercel - no Python backend support.
+- **GitHub Pages:** Same limitation - static hosting only.
+
+**For full Python execution, you must:**
+1. Run locally with `npm run dev` (recommended for development)
+2. Deploy the frontend to any static host (Vercel, Netlify, etc.)
+3. Deploy the Python backend separately to a service that supports Python (Railway, Render, Heroku, AWS, etc.)
+4. Configure the frontend to connect to your deployed backend
+
+## Deploy Frontend to Vercel
 
 1. Install the Vercel CLI: `npm i -g vercel`
 2. Run `vercel` in the project root and follow the prompts
@@ -49,7 +61,7 @@ Copy `.env.example` to `.env` and configure:
    - `VITE_SUPABASE_ANON_KEY`
 4. Deploy with `vercel --prod`
 
-**Note:** Python execution is not available on Vercel deployments. The app will show a message indicating this limitation. For full Python execution, run locally with `npm run dev`.
+**Note:** This will only deploy the frontend. Python execution will not work on Vercel.
 
 ## Project Structure
 
