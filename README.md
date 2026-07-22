@@ -1,74 +1,78 @@
 # Python Studio
 
-A modern Python IDE with real code execution using Piston API, built with React + Vite + Tailwind.
+A modern Python IDE with real code execution, built with React + Vite + Tailwind (frontend) and FastAPI + CPython (backend).
 
 ## Features
 
-- **Real Python code execution** using Piston API (server-side CPython)
+- Real Python code execution with CPython backend
 - Monaco Editor with syntax highlighting and autocomplete
 - Interactive terminal with stdout/stderr streaming
+- Input() support for interactive programs
 - Code snippets and run history with Supabase
 - Export/import code as JSON
 - Dark theme with customizable accents
 - Responsive design for mobile and desktop
 - Keyboard shortcuts (Ctrl+Enter to run, Ctrl+S to save)
-- **Works on Vercel and any static hosting platform** - no backend required
 
 ## Tech Stack
 
 - **Frontend:** React 18, Vite 5, Tailwind CSS 3, Monaco Editor, Framer Motion, Zustand
-- **Python Runtime:** Piston API (real server-side Python execution)
-- **Database:** Supabase (optional, for snippets and history)
+- **Backend:** FastAPI, CPython, WebSockets
+- **Database:** Supabase (for snippets and history)
 
 ## Quick Start
 
 ```bash
 npm install
-npm run dev      # Starts frontend on port 5173
+npm run dev      # Starts both frontend (port 5173) and Python backend (port 8000)
 npm run build    # Production build -> dist/
 npm run preview  # Preview production build
 ```
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and configure (optional - for Supabase features):
+Copy `.env.example` to `.env` and configure:
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_SUPABASE_URL` | No | Supabase project URL (for snippets/history) |
-| `VITE_SUPABASE_ANON_KEY` | No | Supabase anonymous key (for snippets/history) |
-
-**Note:** The app works without Supabase - snippets and history features will be disabled gracefully.
+| `VITE_SUPABASE_URL` | Yes | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 
 ## Deploy to Vercel
 
+**Important:** Python code execution requires a backend server. Vercel only hosts the frontend.
+
 1. Install the Vercel CLI: `npm i -g vercel`
 2. Run `vercel` in the project root and follow the prompts
-3. (Optional) Set environment variables in the Vercel dashboard for Supabase:
+3. Set environment variables in the Vercel dashboard:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
 4. Deploy with `vercel --prod`
 
-**Python execution works on Vercel** - uses Piston API for real server-side execution!
+**Note:** Python execution is not available on Vercel deployments. The app will show a message indicating this limitation. For full Python execution, run locally with `npm run dev`.
 
 ## Project Structure
 
 ```
 .
+├── server/              # FastAPI Python backend
+│   └── main.py          # WebSocket execution server
 ├── src/                 # Frontend React app
 │   ├── components/      # UI components
 │   ├── db.ts           # Supabase database functions
-│   ├── pistonRunner.ts # Piston API-based Python execution
+│   ├── runner.ts       # WebSocket client for Python execution
 │   └── store.ts        # Zustand state management
+├── scripts/             # Build and dev scripts
 ├── vercel.json         # Vercel configuration
 └── package.json
 ```
 
-## How It Works
+## Local Development
 
-Python Studio uses the **Piston API** (https://emkc.org/api/v2/piston) for real Python code execution:
-- Python code is sent to Piston's execution engine
-- Code runs on a server with Python 3.10.0
-- Real stdout/stderr output is returned
-- Supports all Python features including loops, functions, classes, exceptions, and recursion
-- No local Python installation or backend server required
+The `npm run dev` command automatically:
+1. Checks for Python dependencies (fastapi, uvicorn, websockets)
+2. Installs them if missing
+3. Starts the Python backend on port 8000
+4. Starts the Vite frontend on port 5173
+
+The frontend proxies `/run`, `/health`, and `/ws` requests to the Python backend.
