@@ -12,6 +12,9 @@ export type LineType = 'out' | 'err' | 'sys' | 'in';
 export interface RunResult { ok: boolean; ms: number; }
 export interface RunSignal { aborted: boolean; _ws?: WebSocket; }
 
+// Get backend URL from environment variable or use local
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+
 export async function runPython(opts: {
   code: string;
   onLine: (type: LineType, text: string) => void;
@@ -22,10 +25,15 @@ export async function runPython(opts: {
   const t0 = performance.now();
   const ms = () => Math.round(performance.now() - t0);
 
+  // Determine base URL for backend
+  const baseUrl = BACKEND_URL || '';
+  const runEndpoint = `${baseUrl}/run`;
+  const wsProtocol = BACKEND_URL?.startsWith('https') ? 'wss' : 'ws';
+
   // ── 1. Create session via REST ─────────────────────────────────────────────
   let sessionId: string;
   try {
-    const res = await fetch('/run', {
+    const res = await fetch(runEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
@@ -39,15 +47,20 @@ export async function runPython(opts: {
     if (!data.session_id) throw new Error('No session_id returned by server');
     sessionId = data.session_id;
   } catch (e: any) {
-    // Check if this is a Vercel deployment (no backend available)
-    const isVercel = window.location.hostname.includes('vercel.app') || 
-                     window.location.hostname.includes('.vercel.app');
-    if (isVercel) {
-      onLine('err', 'Python execution is not available on Vercel deployments.');
-      onLine('sys', 'This is a frontend-only demo. Run locally with `npm run dev` for full Python execution.');
+    // Check if backend URL is configured
+    if (!BACKEND_URL) {
+      const isVercel = window.location.hostname.includes('vercel.app') || 
+                       window.location.hostname.includes('.vercel.app');
+      if (isVercel) {
+        onLine('err', 'Python execution requires a deployed backend.');
+        onLine('sys', 'Set VITE_BACKEND_URL environment variable or run locally with `npm run dev`.');
+      } else {
+        onLine('err', `Backend error: ${e?.message ?? String(e)}`);
+        onLine('sys', 'The Python server may still be starting up — try again in a moment.');
+      }
     } else {
-      onLine('err', `Backend error: ${e?.message ?? String(e)}`);
-      onLine('sys', 'The Python server may still be starting up — try again in a moment.');
+      onLine('err', `Backend connection failed: ${e?.message ?? String(e)}`);
+      onLine('sys', 'Check your VITE_BACKEND_URL: ' + BACKEND_URL);
     }
     return { ok: false, ms: ms() };
   }
@@ -56,10 +69,17 @@ export async function runPython(opts: {
 
   // ── 2. Stream via WebSocket ────────────────────────────────────────────────
   return new Promise<RunResult>((resolve) => {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const url   = `${proto}://${location.host}/ws/${sessionId}`;
+    let wsUrl: string;
+    if (BACKEND_URL) {
+      const url = new URL(BACKEND_URL);
+      wsUrl = `${wsProtocol}://${url.host}/ws/${sessionId}`;
+    } else {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      wsUrl = `${proto}://${location.host}/ws/${sessionId}`;
+    }
+    
     let ws: WebSocket;
-    try { ws = new WebSocket(url); }
+    try { ws = new WebSocket(wsUrl); }
     catch (e: any) {
       onLine('err', `WebSocket error: ${e?.message ?? e}`);
       resolve({ ok: false, ms: ms() });

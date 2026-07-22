@@ -38,30 +38,36 @@ Copy `.env.example` to `.env` and configure:
 | `VITE_SUPABASE_URL` | Yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 
-## Deployment Limitations
+## Deployment Options
 
 **IMPORTANT:** Python code execution requires a backend server with Python runtime. 
 
-- **Vercel:** Python execution is NOT available. Vercel only hosts static frontend. The app will show a message indicating this limitation.
-- **Netlify:** Same limitation as Vercel - no Python backend support.
-- **GitHub Pages:** Same limitation - static hosting only.
+### Option 1: Local Development (Recommended)
+Run locally with `npm run dev` for full Python execution with local backend.
 
-**For full Python execution, you must:**
-1. Run locally with `npm run dev` (recommended for development)
-2. Deploy the frontend to any static host (Vercel, Netlify, etc.)
-3. Deploy the Python backend separately to a service that supports Python (Railway, Render, Heroku, AWS, etc.)
-4. Configure the frontend to connect to your deployed backend
+### Option 2: Deploy Backend to Render + Frontend to Vercel
 
-## Deploy Frontend to Vercel
+**Step 1: Deploy Backend to Render (Free)**
+1. Create a Render account at render.com
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repository
+4. Render will automatically detect the `render.yaml` file
+5. Deploy the backend (free tier, spins down after 15 min inactivity)
+6. Copy the backend URL (e.g., `https://python-studio-backend.onrender.com`)
 
+**Step 2: Deploy Frontend to Vercel**
 1. Install the Vercel CLI: `npm i -g vercel`
 2. Run `vercel` in the project root and follow the prompts
 3. Set environment variables in the Vercel dashboard:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_BACKEND_URL` (your Render backend URL from Step 1)
 4. Deploy with `vercel --prod`
 
-**Note:** This will only deploy the frontend. Python execution will not work on Vercel.
+**Note:** With this setup, Python execution works on Vercel by connecting to your Render backend.
+
+### Option 3: Deploy Both to Render
+You can also deploy both frontend and backend to Render using the same account.
 
 ## Project Structure
 
