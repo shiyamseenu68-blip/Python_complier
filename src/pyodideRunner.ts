@@ -19,7 +19,7 @@ async function getPyodide() {
   if (loadingPromise) return loadingPromise;
   
   loadingPromise = loadPyodide({
-    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'
+    indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
   });
   
   pyodide = await loadingPromise;
