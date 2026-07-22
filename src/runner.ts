@@ -56,7 +56,7 @@ export async function runPython(opts: {
         onLine('sys', 'Set VITE_BACKEND_URL environment variable or run locally with `npm run dev`.');
       } else {
         onLine('err', `Backend error: ${e?.message ?? String(e)}`);
-        onLine('sys', 'The Python server may still be starting up — try again in a moment.');
+        onLine('sys', 'Make sure Python backend is running on port 8000 with `npm run dev`.');
       }
     } else {
       onLine('err', `Backend connection failed: ${e?.message ?? String(e)}`);
