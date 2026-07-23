@@ -1,19 +1,58 @@
 /**
- * pistonRunner.ts — Python execution using Piston API with fallbacks
+ * apiRunner.ts — Python execution using multiple API services with fallbacks
  * 
- * Try multiple Piston instances to avoid rate limiting and auth issues.
+ * Try multiple free Python execution APIs to find one that works.
  */
 
 export type LineType = 'out' | 'err' | 'sys' | 'in';
 export interface RunResult { ok: boolean; ms: number; }
 export interface RunSignal { aborted: boolean; }
 
-const PISTON_ENDPOINTS = [
-  'https://emkc.org/api/v2/piston/execute',
-  'https://piston.emkc.org/api/v2/piston/execute',
-  'https://api.piston-js.org/v2/piston/execute',
-  'https://piston-api-production.up.railway.app/api/v2/piston/execute',
-  'https://piston-api.herokuapp.com/api/v2/piston/execute',
+const API_SERVICES = [
+  {
+    name: 'Piston',
+    url: 'https://emkc.org/api/v2/piston/execute',
+    execute: async (code: string) => {
+      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: 'python',
+          version: '3.10.0',
+          files: [{ name: 'main.py', content: code }],
+        }),
+      });
+      const result = await response.json();
+      return {
+        stdout: result.run?.stdout || '',
+        stderr: result.run?.stderr || '',
+        exitCode: result.run?.exitCode || 0,
+      };
+    },
+  },
+  {
+    name: 'Rextester',
+    url: 'https://rextester.com/rundotnet/api',
+    execute: async (code: string) => {
+      const formData = new URLSearchParams();
+      formData.append('LanguageChoice', '71'); // Python 3
+      formData.append('Program', code);
+      formData.append('Input', '');
+      formData.append('CompilerArgs', '');
+      
+      const response = await fetch('https://rextester.com/rundotnet/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData,
+      });
+      const result = await response.json();
+      return {
+        stdout: result.Result || '',
+        stderr: result.Errors || '',
+        exitCode: result.Errors ? 1 : 0,
+      };
+    },
+  },
 ];
 
 export async function runPython(opts: {
@@ -28,63 +67,41 @@ export async function runPython(opts: {
 
   let lastError: Error | null = null;
 
-  for (const endpoint of PISTON_ENDPOINTS) {
+  for (const service of API_SERVICES) {
     try {
       if (signal.aborted) return { ok: false, ms: 0 };
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          language: 'python',
-          version: '3.10.0',
-          files: [
-            {
-              name: 'main.py',
-              content: code,
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        lastError = new Error(`Piston API error (${endpoint}): ${response.statusText}`);
-        continue;
-      }
-
-      const result = await response.json();
+      const result = await service.execute(code);
 
       // Output stdout
-      if (result.run?.stdout) {
-        const lines = result.run.stdout.split('\n');
+      if (result.stdout) {
+        const lines = result.stdout.split('\n');
         for (const line of lines) {
           if (line) onLine('out', line);
         }
       }
 
       // Output stderr
-      if (result.run?.stderr) {
-        const lines = result.run.stderr.split('\n');
+      if (result.stderr) {
+        const lines = result.stderr.split('\n');
         for (const line of lines) {
           if (line) onLine('err', line);
         }
       }
 
-      const exitCode = result.run?.exitCode || 0;
+      const exitCode = result.exitCode || 0;
       onLine('sys', `Exit ${exitCode} · ${ms()}ms`);
 
       return { ok: exitCode === 0, ms: ms() };
       
     } catch (e: any) {
-      lastError = e;
+      lastError = new Error(`${service.name} API error: ${e.message}`);
       continue;
     }
   }
 
-  // All endpoints failed
-  onLine('err', lastError?.message || 'All Piston endpoints failed');
+  // All services failed
+  onLine('err', lastError?.message || 'All Python execution APIs failed');
   onLine('sys', `Exit 1 · ${ms()}ms`);
   return { ok: false, ms: ms() };
 }
