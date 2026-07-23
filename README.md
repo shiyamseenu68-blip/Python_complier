@@ -40,7 +40,25 @@ Copy `.env.example` to `.env` and configure:
 
 ## Deployment Options
 
-**IMPORTANT:** Python code execution requires a backend server with Python runtime. 
+**CRITICAL LIMITATION:** Python code execution requires a backend server with Python runtime. 
+**Vercel is a static hosting platform and cannot execute Python code directly.**
+
+### Why Python Execution Won't Work on Vercel Alone
+
+Vercel only hosts static files (HTML, CSS, JavaScript). It cannot:
+- Run Python code
+- Execute server-side Python
+- Provide Python runtime environment
+
+All attempts to run Python in the browser (Skulpt, Brython, Pyodide) fail on Vercel due to:
+- CDN loading restrictions
+- WebAssembly module import errors
+- Browser security policies
+
+All external Python execution APIs (Piston, Rextester, Judge0) require:
+- API keys/authentication
+- Rate limiting
+- Paid plans for production use
 
 ### Option 1: Local Development (Recommended)
 Run locally with `npm run dev` for full Python execution with local backend.
@@ -68,6 +86,14 @@ Run locally with `npm run dev` for full Python execution with local backend.
 
 ### Option 3: Deploy Both to Render
 You can also deploy both frontend and backend to Render using the same account.
+
+### Option 4: Use a Paid Python Execution API
+If you don't want to deploy a backend, you can use a paid Python execution API service:
+- Judge0 Cloud (paid)
+- CodeRunner API (paid)
+- Custom backend deployment
+
+**There is no free, authentication-free Python execution API that works reliably on Vercel.**
 
 ## Project Structure
 
