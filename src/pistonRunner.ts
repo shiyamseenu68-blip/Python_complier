@@ -12,6 +12,8 @@ const PISTON_ENDPOINTS = [
   'https://emkc.org/api/v2/piston/execute',
   'https://piston.emkc.org/api/v2/piston/execute',
   'https://api.piston-js.org/v2/piston/execute',
+  'https://piston-api-production.up.railway.app/api/v2/piston/execute',
+  'https://piston-api.herokuapp.com/api/v2/piston/execute',
 ];
 
 export async function runPython(opts: {
