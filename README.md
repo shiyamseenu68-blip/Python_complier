@@ -40,30 +40,38 @@ Copy `.env.example` to `.env` and configure:
 
 ## Deployment Options
 
-**CRITICAL LIMITATION:** Python code execution requires a backend server with Python runtime. 
+**CRITICAL REQUIREMENT:** Python code execution requires a backend server with Python runtime. 
 **Vercel is a static hosting platform and cannot execute Python code directly.**
 
-### Why Python Execution Won't Work on Vercel Alone
+### Why Python Execution Requires a Backend
 
-Vercel only hosts static files (HTML, CSS, JavaScript). It cannot:
-- Run Python code
-- Execute server-side Python
-- Provide Python runtime environment
+Real Python execution with proper `input()` handling requires:
+- CPython interpreter (cannot run in browser)
+- Synchronous input/output streaming
+- Full Python standard library support
 
-All attempts to run Python in the browser (Skulpt, Brython, Pyodide) fail on Vercel due to:
-- CDN loading restrictions
-- WebAssembly module import errors
-- Browser security policies
+Browser-based Python interpreters (Skulpt, Brython, Pyodide) cannot:
+- Provide real Python execution
+- Handle `input()` properly (async vs sync issue)
+- Support full Python syntax and libraries
 
-All external Python execution APIs (Piston, Rextester, Judge0) require:
+External Python execution APIs (Piston, Rextester, Judge0) require:
 - API keys/authentication
 - Rate limiting
 - Paid plans for production use
 
-### Option 1: Local Development (Recommended)
+### Option 1: Local Development (Recommended for Testing)
 Run locally with `npm run dev` for full Python execution with local backend.
 
-### Option 2: Deploy Backend to Render + Frontend to Vercel
+```bash
+npm run dev
+```
+
+This starts:
+- Frontend on http://localhost:5173
+- Python backend on http://localhost:8000
+
+### Option 2: Deploy Backend to Render + Frontend to Vercel (Production)
 
 **Step 1: Deploy Backend to Render (Free)**
 1. Create a Render account at render.com
