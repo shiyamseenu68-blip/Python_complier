@@ -13,8 +13,13 @@ export interface RunSignal { aborted: boolean; }
 class SimplePythonInterpreter {
   private variables: Map<string, any> = new Map();
   private output: string[] = [];
+  private onInputRequest: ((prompt: string) => Promise<string>) | null = null;
 
-  execute(code: string): { output: string; error: string | null } {
+  setInputHandler(handler: (prompt: string) => Promise<string>) {
+    this.onInputRequest = handler;
+  }
+
+  async execute(code: string): Promise<{ output: string; error: string | null }> {
     this.output = [];
     this.variables.clear();
     
@@ -23,7 +28,7 @@ class SimplePythonInterpreter {
       const processedCode = this.preprocessCode(code);
       
       // Execute using JavaScript eval with Python-like syntax
-      this.executeLines(processedCode);
+      await this.executeLines(processedCode);
       
       return { output: this.output.join('\n'), error: null };
     } catch (e: any) {
@@ -77,10 +82,24 @@ class SimplePythonInterpreter {
     return block;
   }
 
-  private executeLines(lines: string[]): void {
+  private async executeLines(lines: string[]): Promise<void> {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line || line.startsWith('#')) continue;
+      
+      // Handle input() statements
+      const inputMatch = line.match(/^(\w+)\s*=\s*input\s*\((.*)\)$/);
+      if (inputMatch) {
+        const varName = inputMatch[1];
+        const prompt = inputMatch[2].trim();
+        const promptStr = prompt.startsWith('"') || prompt.startsWith("'") ? prompt.slice(1, -1) : prompt;
+        
+        if (this.onInputRequest) {
+          const inputValue = await this.onInputRequest(promptStr || '');
+          this.variables.set(varName, inputValue);
+        }
+        continue;
+      }
       
       // Handle print statements
       const printMatch = line.match(/^print\s*\((.+)\)$/);
@@ -108,7 +127,7 @@ class SimplePythonInterpreter {
         if (condition) {
           // Execute the block
           const block = this.getBlockLines(lines, i);
-          this.executeLines(block);
+          await this.executeLines(block);
           i += block.length;
         } else {
           // Skip the block
@@ -127,7 +146,7 @@ class SimplePythonInterpreter {
         for (let j = rangeArgs[0]; j < rangeArgs[1]; j++) {
           this.variables.set(varName, j);
           const block = this.getBlockLines(lines, i);
-          this.executeLines(block);
+          await this.executeLines(block);
         }
         
         i += this.getBlockLines(lines, i).length;
@@ -139,7 +158,7 @@ class SimplePythonInterpreter {
       if (whileMatch) {
         const block = this.getBlockLines(lines, i);
         while (this.evaluateExpression(whileMatch[1])) {
-          this.executeLines(block);
+          await this.executeLines(block);
         }
         i += block.length;
         continue;
@@ -243,7 +262,7 @@ export async function runPython(opts: {
   onInputRequest: (prompt: string) => Promise<string>;
   signal: RunSignal;
 }): Promise<RunResult> {
-  const { code, onLine, signal } = opts;
+  const { code, onLine, onInputRequest, signal } = opts;
   const t0 = performance.now();
   const ms = () => Math.round(performance.now() - t0);
 
@@ -251,7 +270,8 @@ export async function runPython(opts: {
     if (signal.aborted) return { ok: false, ms: 0 };
 
     const interpreter = new SimplePythonInterpreter();
-    const result = interpreter.execute(code);
+    interpreter.setInputHandler(onInputRequest);
+    const result = await interpreter.execute(code);
 
     if (result.error) {
       onLine('err', result.error);
