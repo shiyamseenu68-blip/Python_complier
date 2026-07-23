@@ -17,28 +17,64 @@ async function loadBrython() {
   if (loadingPromise) return loadingPromise;
 
   loadingPromise = new Promise((resolve, reject) => {
-    // Load Brython from CDN
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/brython@3.12.3/brython.min.js';
-    script.crossOrigin = 'anonymous';
-    script.onload = () => {
-      // Load Brython stdlib
-      const stdlib = document.createElement('script');
-      stdlib.src = 'https://cdn.jsdelivr.net/npm/brython@3.12.3/brython_stdlib.js';
-      stdlib.crossOrigin = 'anonymous';
-      stdlib.onload = () => {
-        brythonLoaded = true;
-        resolve();
+    // Load Brython from CDN with multiple fallbacks
+    const cdnUrls = [
+      'https://cdn.jsdelivr.net/npm/brython@3.12.3/brython.min.js',
+      'https://unpkg.com/brython@3.12.3/brython.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.3/brython.min.js'
+    ];
+    
+    let loadIndex = 0;
+    
+    function tryLoad() {
+      if (loadIndex >= cdnUrls.length) {
+        reject(new Error('Failed to load Brython from all CDNs'));
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.src = cdnUrls[loadIndex];
+      script.crossOrigin = 'anonymous';
+      script.onload = () => {
+        // Load Brython stdlib
+        const stdlibUrls = [
+          'https://cdn.jsdelivr.net/npm/brython@3.12.3/brython_stdlib.js',
+          'https://unpkg.com/brython@3.12.3/brython_stdlib.js',
+          'https://cdnjs.cloudflare.com/ajax/libs/brython/3.12.3/brython_stdlib.js'
+        ];
+        
+        let stdlibIndex = 0;
+        
+        function tryLoadStdlib() {
+          if (stdlibIndex >= stdlibUrls.length) {
+            reject(new Error('Failed to load Brython stdlib from all CDNs'));
+            return;
+          }
+          
+          const stdlib = document.createElement('script');
+          stdlib.src = stdlibUrls[stdlibIndex];
+          stdlib.crossOrigin = 'anonymous';
+          stdlib.onload = () => {
+            brythonLoaded = true;
+            resolve();
+          };
+          stdlib.onerror = () => {
+            stdlibIndex++;
+            tryLoadStdlib();
+          };
+          document.head.appendChild(stdlib);
+        }
+        
+        tryLoadStdlib();
       };
-      stdlib.onerror = () => {
-        reject(new Error('Failed to load Brython stdlib'));
+      script.onerror = () => {
+        loadIndex++;
+        tryLoad();
       };
-      document.head.appendChild(stdlib);
-    };
-    script.onerror = () => {
-      reject(new Error('Failed to load Brython core'));
-    };
-    document.head.appendChild(script);
+      document.head.appendChild(script);
+    }
+    
+    tryLoad();
   });
 
   await loadingPromise;
