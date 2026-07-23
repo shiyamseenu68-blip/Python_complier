@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useStore } from './store';
 import { getTheme } from './themes';
-import { runPython, stopExecution } from './skulptRunner';
+import { runPython, stopExecution } from './brythonRunner';
 import { CodeEditor }     from './components/CodeEditor';
 import { Terminal }       from './components/Terminal';
 import { Sidebar }        from './components/Sidebar';
