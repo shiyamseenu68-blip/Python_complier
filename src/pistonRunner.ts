@@ -10,29 +10,7 @@ export interface RunSignal { aborted: boolean; }
 
 const API_SERVICES = [
   {
-    name: 'Piston',
-    url: 'https://emkc.org/api/v2/piston/execute',
-    execute: async (code: string) => {
-      const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: 'python',
-          version: '3.10.0',
-          files: [{ name: 'main.py', content: code }],
-        }),
-      });
-      const result = await response.json();
-      return {
-        stdout: result.run?.stdout || '',
-        stderr: result.run?.stderr || '',
-        exitCode: result.run?.exitCode || 0,
-      };
-    },
-  },
-  {
     name: 'Rextester',
-    url: 'https://rextester.com/rundotnet/api',
     execute: async (code: string) => {
       const formData = new URLSearchParams();
       formData.append('LanguageChoice', '71'); // Python 3
@@ -51,6 +29,44 @@ const API_SERVICES = [
         stderr: result.Errors || '',
         exitCode: result.Errors ? 1 : 0,
       };
+    },
+  },
+  {
+    name: 'Piston',
+    execute: async (code: string) => {
+      const endpoints = [
+        'https://emkc.org/api/v2/piston/execute',
+        'https://piston.emkc.org/api/v2/piston/execute',
+        'https://api.piston-js.org/v2/piston/execute',
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              language: 'python',
+              version: '3.10.0',
+              files: [{ name: 'main.py', content: code }],
+            }),
+          });
+          if (response.ok) {
+            const result = await response.json();
+            return {
+              stdout: result.run?.stdout || '',
+              stderr: result.run?.stderr || '',
+              exitCode: result.run?.exitCode || 0,
+            };
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      throw new Error('All Piston endpoints failed');
     },
   },
 ];
