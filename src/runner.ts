@@ -17,11 +17,12 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 export async function runPython(opts: {
   code: string;
+  stdin?: string;
   onLine: (type: LineType, text: string) => void;
   onInputRequest: (prompt: string) => Promise<string>;
   signal: RunSignal;
 }): Promise<RunResult> {
-  const { code, onLine, onInputRequest, signal } = opts;
+  const { code, stdin, onLine, onInputRequest, signal } = opts;
   const t0 = performance.now();
   const ms = () => Math.round(performance.now() - t0);
 
@@ -36,7 +37,7 @@ export async function runPython(opts: {
     const res = await fetch(runEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, stdin: stdin || '' }),
     });
     if (!res.ok) {
       let body = `HTTP ${res.status}`;

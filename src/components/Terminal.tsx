@@ -11,9 +11,10 @@ const LINE_CLS: Record<string, string> = {
 };
 
 export function Terminal() {
-  const { lines, clearLines, running, inputPrompt, resolveInput, cfg, setTermOpen } = useStore();
+  const { lines, clearLines, running, inputPrompt, resolveInput, cfg, setTermOpen, stdin, setStdin } = useStore();
   const endRef = useRef<HTMLDivElement>(null);
   const inRef  = useRef<HTMLInputElement>(null);
+  const stdinRef = useRef<HTMLTextAreaElement>(null);
   const [val, setVal] = useState('');
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [lines, inputPrompt]);
@@ -43,6 +44,20 @@ export function Terminal() {
           <button onClick={clearLines} className="ib"><Trash2 size={11} /></button>
           <button onClick={() => setTermOpen(false)} className="ib"><ChevronDown size={11} /></button>
         </div>
+      </div>
+
+      {/* Stdin input area */}
+      <div className="shrink-0 border-b border-cv-border px-3 py-2">
+        <label className="mb-1 block text-[10px] font-semibold text-cv-muted uppercase">Standard Input (stdin)</label>
+        <textarea
+          ref={stdinRef}
+          value={stdin}
+          onChange={e => setStdin(e.target.value)}
+          disabled={running}
+          placeholder="Enter input for your program (one line per input() call)&#10;Leave empty if no input is needed"
+          className="h-16 w-full resize-none bg-cv-bg px-2 py-1 text-xs text-cv-text outline-none focus:ring-1 focus:ring-cv-accent disabled:opacity-50"
+          style={{ fontFamily: `'${cfg.font}',monospace` }}
+        />
       </div>
 
       {/* Output area */}

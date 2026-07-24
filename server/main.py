@@ -30,13 +30,14 @@ _sessions: dict[str, str] = {}
 
 class RunReq(BaseModel):
     code: str
+    stdin: str = ""
 
 
 @app.post("/run")
 async def create_session(req: RunReq):
     try:
         sid = str(uuid.uuid4())
-        _sessions[sid] = req.code
+        _sessions[sid] = {"code": req.code, "stdin": req.stdin}
         return {"session_id": sid}
     except Exception as exc:
         # Never 500 — always return something the client can handle
@@ -46,8 +47,8 @@ async def create_session(req: RunReq):
 @app.websocket("/ws/{sid}")
 async def run_ws(ws: WebSocket, sid: str):
     await ws.accept()
-    code = _sessions.pop(sid, None)
-    if code is None:
+    session = _sessions.pop(sid, None)
+    if session is None:
         await _send(ws, {"type": "stderr", "data": f"Session not found: {sid}\n"})
         await _send(ws, {"type": "exit", "code": 1})
         try:
@@ -55,6 +56,9 @@ async def run_ws(ws: WebSocket, sid: str):
         except Exception:
             pass
         return
+
+    code = session.get("code", "")
+    stdin_data = session.get("stdin", "")
 
     path = None
     try:
@@ -64,7 +68,7 @@ async def run_ws(ws: WebSocket, sid: str):
             f.write(code)
             path = f.name
 
-        await _execute(ws, path)
+        await _execute(ws, path, stdin_data)
 
     except Exception:
         tb = traceback.format_exc()
@@ -89,11 +93,11 @@ async def _send(ws: WebSocket, obj: dict) -> None:
         pass
 
 
-async def _execute(ws: WebSocket, path: str) -> None:
+async def _execute(ws: WebSocket, path: str, stdin_data: str = "") -> None:
     """
     Run `python3 -u <path>` with piped stdio.
     Stream stdout/stderr to ws in real time.
-    Feed stdin from ws messages (for input()).
+    Feed stdin from pre-provided data or ws messages (for input()).
     """
     proc = await asyncio.create_subprocess_exec(
         sys.executable,
@@ -105,6 +109,9 @@ async def _execute(ws: WebSocket, path: str) -> None:
     )
 
     done = asyncio.Event()
+    stdin_lines = stdin_data.split('\n') if stdin_data else []
+    stdin_index = 0
+    used_preloaded_stdin = False
 
     async def stream_pipe(reader: asyncio.StreamReader, msg_type: str) -> None:
         while True:
@@ -132,10 +139,24 @@ async def _execute(ws: WebSocket, path: str) -> None:
             })
 
     async def stdin_feeder() -> None:
+        nonlocal stdin_index, used_preloaded_stdin
+        
         while not done.is_set():
             try:
-                raw = await asyncio.wait_for(ws.receive_text(), timeout=1.0)
+                raw = await asyncio.wait_for(ws.receive_text(), timeout=0.1)
             except asyncio.TimeoutError:
+                # If we have preloaded stdin, feed it
+                if not used_preloaded_stdin and stdin_index < len(stdin_lines):
+                    line = stdin_lines[stdin_index] + "\n"
+                    stdin_index += 1
+                    try:
+                        if proc.stdin and not proc.stdin.is_closing():
+                            proc.stdin.write(line.encode("utf-8"))
+                            await proc.stdin.drain()
+                    except (BrokenPipeError, ConnectionResetError, Exception):
+                        return
+                    continue
+                # If we've used all preloaded stdin, continue waiting for ws messages
                 continue
             except (WebSocketDisconnect, Exception):
                 try:
@@ -157,6 +178,7 @@ async def _execute(ws: WebSocket, path: str) -> None:
                 return
 
             if msg.get("type") == "stdin":
+                used_preloaded_stdin = True  # Switch to interactive mode
                 line = str(msg.get("data", "")) + "\n"
                 try:
                     if proc.stdin and not proc.stdin.is_closing():

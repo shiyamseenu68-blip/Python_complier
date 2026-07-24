@@ -46,6 +46,7 @@ interface S {
   mobileView:'editor'|'term';mobileNav:boolean;
   search:string;hits:{fileId:string;file:string;line:number;text:string}[];notifs:Notif[];
   runSignal:RunSignal;dbSnippets:DbSnippet[];dbHistory:DbRunHistory[];dbLoading:boolean;
+  stdin:string;
   openFile(id:string):void;closeTab(id:string):void;setActiveTab(id:string):void;
   updateContent(id:string,c:string):void;createFile(n:string,p?:string|null):void;
   createFolder(n:string,p?:string|null):void;deleteNode(id:string):void;
@@ -66,6 +67,7 @@ interface S {
   togglePin(id:string):Promise<void>;
   recordRun(snId:string|null,code:string,inputs:string[],output:string,exitCode:number,ms:number,err:string):Promise<void>;
   removeHistory(id:string):Promise<void>;wipeHistory():Promise<void>;
+  setStdin(v:string):void;
 }
 
 export const useStore=create<S>()(persist((set,get)=>({
@@ -76,6 +78,7 @@ export const useStore=create<S>()(persist((set,get)=>({
   mobileView:'editor',mobileNav:false,
   search:'',hits:[],notifs:[],runSignal:{aborted:false},
   dbSnippets:[],dbHistory:[],dbLoading:false,
+  stdin:'',
   openFile(id){const f=get().files.find(x=>x.id===id);if(!f||f.type!=='file')return;const ex=get().tabs.find(t=>t.fileId===id);if(ex){set({activeTabId:ex.id,activeFileId:id});return;}const t:Tab={id:uid(),fileId:id,name:f.name,language:f.language??'plaintext',isDirty:false};set(s=>({tabs:[...s.tabs,t],activeTabId:t.id,activeFileId:id}));},
   closeTab(tabId){const ts=get().tabs,i=ts.findIndex(t=>t.id===tabId);if(i===-1)return;const nt=ts.filter(t=>t.id!==tabId),nx=nt[i]??nt[i-1]??null;set({tabs:nt,activeTabId:nx?.id??null,activeFileId:nx?.fileId??null});},
   setActiveTab(id){const t=get().tabs.find(t=>t.id===id);set({activeTabId:id,activeFileId:t?.fileId??null});},
@@ -117,4 +120,5 @@ export const useStore=create<S>()(persist((set,get)=>({
   async recordRun(snId,code,inputs,output,exitCode,ms,err){if(snId){const sn=get().dbSnippets.find(s=>s.id===snId);if(sn){const nc=sn.run_count+1;updateSnippet(snId,{run_count:nc,last_run_at:new Date().toISOString()}).catch(()=>{});set(s=>({dbSnippets:s.dbSnippets.map(x=>x.id===snId?{...x,run_count:nc}:x)}));}}try{const row=await insertRunHistory({snippet_id:snId,code,inputs,output,exit_code:exitCode,duration_ms:ms,error_message:err});set(s=>({dbHistory:[row,...s.dbHistory].slice(0,200)}));}catch{}},
   async removeHistory(id){try{await deleteRunHistory(id);set(s=>({dbHistory:s.dbHistory.filter(h=>h.id!==id)}));}catch(e:any){get().notify({level:'error',title:'Failed',msg:e?.message});}},
   async wipeHistory(){try{await clearRunHistory();set({dbHistory:[]});get().notify({level:'success',title:'History cleared'});}catch(e:any){get().notify({level:'error',title:'Failed',msg:e?.message});}},
+  setStdin(v){set({stdin:v});},
 }),{name:'pystudio-v12',partialize:s=>({files:s.files,sidebarW:s.sidebarW,termH:s.termH,sidebarOpen:s.sidebarOpen})}));

@@ -23,7 +23,7 @@ export function App() {
     mobileView, setMobileView, mobileNav, setMobileNav,
     saveAll, activeFile, openFile, requestInput, zoomIn, zoomOut, resetZoom,
     setShowCmd, setShowCfg, setShowExport, setShowHistory, setShowSnippets,
-    runSignal, loadDb, recordRun } = store;
+    runSignal, loadDb, recordRun, stdin } = store;
   const theme = getTheme(cfg.theme || 'tokyo-night');
   const runOut = useRef<{ out: string[]; err: string[]; inputs: string[] }>({ out: [], err: [], inputs: [] });
 
@@ -67,6 +67,7 @@ export function App() {
     const t0 = performance.now();
     const result = await runPython({
       code: file.content ?? '',
+      stdin: stdin,
       onLine: (type, text) => {
         addLine(type, text);
         if (type === 'out') runOut.current.out.push(text);
