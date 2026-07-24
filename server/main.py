@@ -211,6 +211,11 @@ async def _execute(ws: WebSocket, path: str, stdin_data: str = "") -> None:
     })
 
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "python-studio-backend", "version": "1.0.0"}
+
+
 @app.get("/health")
 async def health():
     return {"ok": True, "python": sys.version, "pid": os.getpid()}
