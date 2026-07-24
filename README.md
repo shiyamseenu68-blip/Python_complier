@@ -73,27 +73,57 @@ This starts:
 
 ### Option 2: Deploy Backend to Render + Frontend to Vercel (Production)
 
+This is the **recommended production setup** for Vercel deployment.
+
 **Step 1: Deploy Backend to Render (Free)**
-1. Create a Render account at render.com
+
+1. Create a Render account at [render.com](https://render.com)
 2. Click "New +" → "Web Service"
-3. Connect your GitHub repository
+3. Connect your GitHub repository (this repository)
 4. Render will automatically detect the `render.yaml` file
-5. Deploy the backend (free tier, spins down after 15 min inactivity)
-6. Copy the backend URL (e.g., `https://python-studio-backend.onrender.com`)
+5. Configure the service:
+   - Name: `python-studio-backend` (or any name you prefer)
+   - Region: Choose the closest region to your users
+   - Plan: Free (spins down after 15 min inactivity)
+6. Click "Create Web Service"
+7. Wait for deployment to complete (2-3 minutes)
+8. Copy the backend URL from the dashboard (e.g., `https://python-studio-backend.onrender.com`)
 
 **Step 2: Deploy Frontend to Vercel**
-1. Install the Vercel CLI: `npm i -g vercel`
-2. Run `vercel` in the project root and follow the prompts
-3. Set environment variables in the Vercel dashboard:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_BACKEND_URL` (your Render backend URL from Step 1)
-4. Deploy with `vercel --prod`
 
-**Note:** With this setup, Python execution works on Vercel by connecting to your Render backend.
+1. Install the Vercel CLI:
+```bash
+npm i -g vercel
+```
+
+2. Run Vercel in the project root:
+```bash
+vercel
+```
+Follow the prompts to deploy.
+
+3. Set environment variables in the Vercel dashboard:
+   - Go to your Vercel project → Settings → Environment Variables
+   - Add the following variables:
+     - `VITE_SUPABASE_URL`: Your Supabase project URL
+     - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+     - `VITE_BACKEND_URL`: Your Render backend URL from Step 1 (e.g., `https://python-studio-backend.onrender.com`)
+
+4. Deploy to production:
+```bash
+vercel --prod
+```
+
+**How it works:**
+- Frontend runs on Vercel (static hosting)
+- Backend runs on Render (Python runtime)
+- Frontend connects to backend via WebSocket for Python execution
+- `input()` works properly because the backend uses real CPython
+
+**Note:** The free Render tier spins down after 15 minutes of inactivity. The first request after spin-up may take 30-60 seconds. For production use, consider upgrading to a paid plan.
 
 ### Option 3: Deploy Both to Render
-You can also deploy both frontend and backend to Render using the same account.
+You can also deploy both frontend and backend to Render using the same account. This avoids the spin-up delay of the free tier.
 
 ### Option 4: Use a Paid Python Execution API
 If you don't want to deploy a backend, you can use a paid Python execution API service:
